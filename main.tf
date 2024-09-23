@@ -87,11 +87,13 @@ resource "aws_instance" "guacamole_frontend" {
   vpc_security_group_ids = [aws_security_group.frontend_sg.id]
   private_ip             = "10.0.0.10"
   user_data_base64 = base64gzip(templatefile("${path.module}/templates/guacamole-init.tftpl", {
-    guacadmin_password = var.guacadmin_password
-    postgres_user      = var.postgres_user
-    postgres_password  = var.postgres_password
-    postgres_db        = var.postgres_db
-    public_ip          = aws_eip.frontend_ip.public_ip
+    guacadmin_password        = var.guacadmin_password
+    postgres_user             = var.postgres_user
+    postgres_password         = var.postgres_password
+    postgres_db               = var.postgres_db
+    public_ip                 = aws_eip.frontend_ip.public_ip
+    acme_letsencrypt_endpoint = var.acme_letsencrypt_endpoint[terraform.workspace]
+    acme_email                = var.acme_email
     users = [
       for i in range(var.lab_users_count) : {
         "name" : format("user%02.0f", i + 1),
@@ -105,7 +107,7 @@ resource "aws_instance" "guacamole_frontend" {
   }))
 
   tags = {
-    Name = "guacamole-ec2"
+    Name = "guacamole-ec2-${terraform.workspace}"
   }
 }
 
@@ -163,6 +165,6 @@ resource "aws_instance" "users_instances" {
   vpc_security_group_ids = [aws_security_group.backend_sg.id]
 
   tags = {
-    Name = format("user%02.0f-ec2", count.index + 1)
+    Name = format("user%02.0f-ec2-${terraform.workspace}", count.index + 1)
   }
 }

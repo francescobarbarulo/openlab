@@ -16,17 +16,17 @@ cat <<EOF > all.yml
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: letsencrypt-staging
+  name: letsencrypt
   namespace: guacamole-system
 spec:
   acme:
     # The ACME server URL
-    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    server: ${acme_letsencrypt_endpoint}
     # Email address used for ACME registration
-    email: barbarulofrancesco@gmail.com
+    email: ${acme_email}
     # Name of a secret used to store the ACME account private key
     privateKeySecretRef:
-      name: letsencrypt-staging
+      name: letsencrypt
     # Enable the HTTP-01 challenge provider
     solvers:
       - http01:
@@ -1051,7 +1051,7 @@ metadata:
   name: guacamole
   namespace: guacamole-system
   annotations:
-    cert-manager.io/issuer: "letsencrypt-staging"
+    cert-manager.io/issuer: "letsencrypt"
     nginx.ingress.kubernetes.io/app-root: "/guacamole"
 spec:
   ingressClassName: nginx

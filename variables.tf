@@ -1,6 +1,6 @@
 variable "lab_users_count" {
-  type    = number
-  default = 2
+  description = "Number of lab's users"
+  type        = number
 }
 
 variable "instance_ami" {
@@ -47,4 +47,17 @@ variable "postgres_db" {
   description = "Postgres database"
   type        = string
   sensitive   = true
+}
+
+variable "acme_letsencrypt_endpoint" {
+  description = "ACME v2 Let's eEcrypt endpoint for frontend certificate"
+  type        = map(string)
+  default = {
+    staging = "https://acme-staging-v02.api.letsencrypt.org/directory"
+    prod    = "https://acme-v02.api.letsencrypt.org/directory"
+  }
+}
+
+variable "acme_email" {
+  type = string
 }
