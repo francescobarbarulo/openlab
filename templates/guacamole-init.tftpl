@@ -838,7 +838,7 @@ data:
     INSERT INTO guacamole_user (entity_id, password_hash, password_salt, password_date)
     SELECT
         entity_id,
-        sha256('${user.name}FE24ADC5E11E2B25288D1704ABE67A79E342ECC26064CE69C5B3177795A82264'),
+        sha256('${user.password}FE24ADC5E11E2B25288D1704ABE67A79E342ECC26064CE69C5B3177795A82264'),
         decode('FE24ADC5E11E2B25288D1704ABE67A79E342ECC26064CE69C5B3177795A82264', 'hex'),
         CURRENT_TIMESTAMP
     FROM guacamole_entity WHERE name = '${user.name}' AND guacamole_entity.type = 'USER';

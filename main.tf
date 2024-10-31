@@ -97,6 +97,7 @@ resource "aws_instance" "guacamole_frontend" {
     users = [
       for i in range(var.lab_users_count) : {
         "name" : format("user%02.0f", i + 1),
+        "password" : var.lab_user_password,
         "connection_name" : format("user%02.0f-rdp", i + 1),
         "connection_hostname" : format("10.0.1.%d", i + 1 + 10),
         "connection_port" : "3389", # rdp

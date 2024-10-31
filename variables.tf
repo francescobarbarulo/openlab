@@ -3,6 +3,12 @@ variable "lab_users_count" {
   type        = number
 }
 
+variable "lab_user_password" {
+  description = "Lab user password"
+  type        = string
+  sensitive   = true
+}
+
 variable "instance_ami" {
   description = "AMI to be used for user instances. It must exist before provioning."
   type        = string
