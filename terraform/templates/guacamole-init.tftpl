@@ -1,0 +1,225 @@
+#!/bin/bash
+
+set -x
+curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" INSTALL_K3S_EXEC="--disable=traefik" sh -
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml
+kubectl rollout status deployment -n ingress-nginx
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml
+kubectl rollout status deployment -n cert-manager
+kubectl create namespace guacamole-system
+kubectl create secret generic postgres-credentials \
+--from-literal=user=${postgres_user} \
+--from-literal=password=${postgres_password} \
+--from-literal=db=${postgres_db} \
+--namespace guacamole-system
+cat <<EOF > all.yml
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: letsencrypt
+  namespace: guacamole-system
+spec:
+  acme:
+    # The ACME server URL
+    server: ${acme_letsencrypt_endpoint}
+    # Email address used for ACME registration
+    email: ${acme_email}
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt
+    # Enable the HTTP-01 challenge provider
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: guacamole-system
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: guacamole-system
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  serviceName: postgres
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: db
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        - name: initdb
+          mountPath: /docker-entrypoint-initdb.d
+      initContainers:
+      - name: postgres-init
+        image: guacamole/guacamole
+        command: ["/bin/bash", "-c"]
+        args: ["/opt/guacamole/bin/initdb.sh --postgresql > /home/guacamole/initdb.sql"]
+        volumeMounts:
+        - name: initdb
+          mountPath: /home/guacamole
+      volumes:
+      - name: initdb
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      storageClassName: local-path
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guacd
+  namespace: guacamole-system
+spec:
+  selector:
+    app: guacd
+  ports:
+  - port: 4822
+    targetPort: 4822
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guacd
+  namespace: guacamole-system
+spec:
+  selector:
+    matchLabels:
+      app: guacd
+  template:
+    metadata:
+      labels:
+        app: guacd
+    spec:
+      containers:
+      - name: guacd
+        image: guacamole/guacd
+        ports:
+        - containerPort: 4822
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guacamole
+  namespace: guacamole-system
+spec:
+  selector:
+    app: guacamole
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guacamole
+  namespace: guacamole-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guacamole
+  template:
+    metadata:
+      labels:
+        app: guacamole
+    spec:
+      containers:
+      - name: guacamole
+        image: guacamole/guacamole
+        env:
+        - name: POSTGRESQL_HOSTNAME
+          value: postgres-0.postgres
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: db
+        - name: POSTGRESQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: user
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        - name: GUACD_HOSTNAME
+          value: guacd
+        - name: GUACD_PORT
+          value: "4822"
+        ports:
+        - containerPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: guacamole
+  namespace: guacamole-system
+  annotations:
+    cert-manager.io/issuer: "letsencrypt"
+    nginx.ingress.kubernetes.io/app-root: "/guacamole"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: guacamole.${public_ip}.sslip.io
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: guacamole
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - guacamole.${public_ip}.sslip.io
+    secretName: guacamole-tls
+EOF
+kubectl apply -f all.yml
