@@ -16,13 +16,13 @@ version_command() {
 }
 
 # :command.usage
-lab_usage() {
-  printf "lab - cvnlabs LCM\n\n"
+openlab_usage() {
+  printf "openlab - openlab CLI\n\n"
 
   printf "%s\n" "Usage:"
-  printf "  lab COMMAND\n"
-  printf "  lab [COMMAND] --help | -h\n"
-  printf "  lab --version | -v\n"
+  printf "  openlab COMMAND\n"
+  printf "  openlab [COMMAND] --help | -h\n"
+  printf "  openlab --version | -v\n"
   echo
   # :command.usage_commands
   printf "%s\n" "Commands:"
@@ -60,12 +60,12 @@ lab_usage() {
 }
 
 # :command.usage
-lab_list_usage() {
-  printf "lab list - List existing lab infrastructures\n\n"
+openlab_list_usage() {
+  printf "openlab list - List existing lab infrastructures\n\n"
 
   printf "%s\n" "Usage:"
-  printf "  lab list\n"
-  printf "  lab list --help | -h\n"
+  printf "  openlab list\n"
+  printf "  openlab list --help | -h\n"
   echo
 
   # :command.long_usage
@@ -81,41 +81,12 @@ lab_list_usage() {
 }
 
 # :command.usage
-lab_get_usage() {
-  printf "lab get - Get lab hostname\n\n"
+openlab_get_usage() {
+  printf "openlab get - Get lab hostname\n\n"
 
   printf "%s\n" "Usage:"
-  printf "  lab get NAME\n"
-  printf "  lab get --help | -h\n"
-  echo
-
-  # :command.long_usage
-  if [[ -n "$long_usage" ]]; then
-    printf "%s\n" "Options:"
-
-    # :command.usage_fixed_flags
-    printf "  %s\n" "--help, -h"
-    printf "    Show this help\n"
-    echo
-
-    # :command.usage_args
-    printf "%s\n" "Arguments:"
-
-    # :argument.usage
-    printf "  %s\n" "NAME"
-    printf "    Lab name\n"
-    echo
-
-  fi
-}
-
-# :command.usage
-lab_create_usage() {
-  printf "lab create - Bootstrap lab infrastructure\n\n"
-
-  printf "%s\n" "Usage:"
-  printf "  lab create NAME\n"
-  printf "  lab create --help | -h\n"
+  printf "  openlab get NAME\n"
+  printf "  openlab get --help | -h\n"
   echo
 
   # :command.long_usage
@@ -139,12 +110,12 @@ lab_create_usage() {
 }
 
 # :command.usage
-lab_delete_usage() {
-  printf "lab delete - Delete lab infrastructure\n\n"
+openlab_create_usage() {
+  printf "openlab create - Bootstrap lab infrastructure\n\n"
 
   printf "%s\n" "Usage:"
-  printf "  lab delete NAME\n"
-  printf "  lab delete --help | -h\n"
+  printf "  openlab create NAME\n"
+  printf "  openlab create --help | -h\n"
   echo
 
   # :command.long_usage
@@ -168,12 +139,12 @@ lab_delete_usage() {
 }
 
 # :command.usage
-lab_start_usage() {
-  printf "lab start - Start lab instances\n\n"
+openlab_delete_usage() {
+  printf "openlab delete - Delete lab infrastructure\n\n"
 
   printf "%s\n" "Usage:"
-  printf "  lab start NAME\n"
-  printf "  lab start --help | -h\n"
+  printf "  openlab delete NAME\n"
+  printf "  openlab delete --help | -h\n"
   echo
 
   # :command.long_usage
@@ -197,12 +168,41 @@ lab_start_usage() {
 }
 
 # :command.usage
-lab_stop_usage() {
-  printf "lab stop - Stop lab instances\n\n"
+openlab_start_usage() {
+  printf "openlab start - Start lab instances\n\n"
 
   printf "%s\n" "Usage:"
-  printf "  lab stop NAME\n"
-  printf "  lab stop --help | -h\n"
+  printf "  openlab start NAME\n"
+  printf "  openlab start --help | -h\n"
+  echo
+
+  # :command.long_usage
+  if [[ -n "$long_usage" ]]; then
+    printf "%s\n" "Options:"
+
+    # :command.usage_fixed_flags
+    printf "  %s\n" "--help, -h"
+    printf "    Show this help\n"
+    echo
+
+    # :command.usage_args
+    printf "%s\n" "Arguments:"
+
+    # :argument.usage
+    printf "  %s\n" "NAME"
+    printf "    Lab name\n"
+    echo
+
+  fi
+}
+
+# :command.usage
+openlab_stop_usage() {
+  printf "openlab stop - Stop lab instances\n\n"
+
+  printf "%s\n" "Usage:"
+  printf "  openlab stop NAME\n"
+  printf "  openlab stop --help | -h\n"
   echo
 
   # :command.long_usage
@@ -299,7 +299,7 @@ inspect_args() {
 
 # :command.command_functions
 # :command.function
-lab_list_command() {
+openlab_list_command() {
 
   # src/list_command.sh
   for i in $(ls $PWD/terraform/terraform.tfstate.d)
@@ -313,7 +313,7 @@ lab_list_command() {
 }
 
 # :command.function
-lab_get_command() {
+openlab_get_command() {
 
   # src/get_command.sh
   lab_name=${args[name]}
@@ -327,7 +327,7 @@ lab_get_command() {
 }
 
 # :command.function
-lab_create_command() {
+openlab_create_command() {
 
   # src/create_command.sh
   lab_name=${args[name]}
@@ -343,7 +343,7 @@ lab_create_command() {
 }
 
 # :command.function
-lab_delete_command() {
+openlab_delete_command() {
 
   # src/delete_command.sh
   lab_name=${args[name]}
@@ -359,7 +359,7 @@ lab_delete_command() {
 }
 
 # :command.function
-lab_start_command() {
+openlab_start_command() {
 
   # src/start_command.sh
   lab_name=${args[name]}
@@ -373,7 +373,7 @@ lab_start_command() {
 }
 
 # :command.function
-lab_stop_command() {
+openlab_stop_command() {
 
   # src/stop_command.sh
   lab_name=${args[name]}
@@ -399,7 +399,7 @@ parse_requirements() {
 
       --help | -h)
         long_usage=yes
-        lab_usage
+        openlab_usage
         exit
         ;;
 
@@ -429,48 +429,48 @@ parse_requirements() {
     list)
       action="list"
       shift
-      lab_list_parse_requirements "$@"
+      openlab_list_parse_requirements "$@"
       shift $#
       ;;
 
     get)
       action="get"
       shift
-      lab_get_parse_requirements "$@"
+      openlab_get_parse_requirements "$@"
       shift $#
       ;;
 
     create)
       action="create"
       shift
-      lab_create_parse_requirements "$@"
+      openlab_create_parse_requirements "$@"
       shift $#
       ;;
 
     delete)
       action="delete"
       shift
-      lab_delete_parse_requirements "$@"
+      openlab_delete_parse_requirements "$@"
       shift $#
       ;;
 
     start)
       action="start"
       shift
-      lab_start_parse_requirements "$@"
+      openlab_start_parse_requirements "$@"
       shift $#
       ;;
 
     stop)
       action="stop"
       shift
-      lab_stop_parse_requirements "$@"
+      openlab_stop_parse_requirements "$@"
       shift $#
       ;;
 
     # :command.command_fallback
     "")
-      lab_usage >&2
+      openlab_usage >&2
       exit 1
       ;;
 
@@ -505,14 +505,14 @@ parse_requirements() {
 }
 
 # :command.parse_requirements
-lab_list_parse_requirements() {
+openlab_list_parse_requirements() {
   # :command.fixed_flags_filter
   while [[ $# -gt 0 ]]; do
     key="$1"
     case "$key" in
       --help | -h)
         long_usage=yes
-        lab_list_usage
+        openlab_list_usage
         exit
         ;;
 
@@ -550,14 +550,14 @@ lab_list_parse_requirements() {
 }
 
 # :command.parse_requirements
-lab_get_parse_requirements() {
+openlab_get_parse_requirements() {
   # :command.fixed_flags_filter
   while [[ $# -gt 0 ]]; do
     key="$1"
     case "$key" in
       --help | -h)
         long_usage=yes
-        lab_get_usage
+        openlab_get_usage
         exit
         ;;
 
@@ -600,7 +600,7 @@ lab_get_parse_requirements() {
 
   # :command.required_args_filter
   if [[ -z ${args['name']+x} ]]; then
-    printf "missing required argument: NAME\nusage: lab get NAME\n" >&2
+    printf "missing required argument: NAME\nusage: openlab get NAME\n" >&2
 
     exit 1
   fi
@@ -608,14 +608,14 @@ lab_get_parse_requirements() {
 }
 
 # :command.parse_requirements
-lab_create_parse_requirements() {
+openlab_create_parse_requirements() {
   # :command.fixed_flags_filter
   while [[ $# -gt 0 ]]; do
     key="$1"
     case "$key" in
       --help | -h)
         long_usage=yes
-        lab_create_usage
+        openlab_create_usage
         exit
         ;;
 
@@ -658,7 +658,7 @@ lab_create_parse_requirements() {
 
   # :command.required_args_filter
   if [[ -z ${args['name']+x} ]]; then
-    printf "missing required argument: NAME\nusage: lab create NAME\n" >&2
+    printf "missing required argument: NAME\nusage: openlab create NAME\n" >&2
 
     exit 1
   fi
@@ -666,14 +666,14 @@ lab_create_parse_requirements() {
 }
 
 # :command.parse_requirements
-lab_delete_parse_requirements() {
+openlab_delete_parse_requirements() {
   # :command.fixed_flags_filter
   while [[ $# -gt 0 ]]; do
     key="$1"
     case "$key" in
       --help | -h)
         long_usage=yes
-        lab_delete_usage
+        openlab_delete_usage
         exit
         ;;
 
@@ -716,7 +716,7 @@ lab_delete_parse_requirements() {
 
   # :command.required_args_filter
   if [[ -z ${args['name']+x} ]]; then
-    printf "missing required argument: NAME\nusage: lab delete NAME\n" >&2
+    printf "missing required argument: NAME\nusage: openlab delete NAME\n" >&2
 
     exit 1
   fi
@@ -724,14 +724,14 @@ lab_delete_parse_requirements() {
 }
 
 # :command.parse_requirements
-lab_start_parse_requirements() {
+openlab_start_parse_requirements() {
   # :command.fixed_flags_filter
   while [[ $# -gt 0 ]]; do
     key="$1"
     case "$key" in
       --help | -h)
         long_usage=yes
-        lab_start_usage
+        openlab_start_usage
         exit
         ;;
 
@@ -774,7 +774,7 @@ lab_start_parse_requirements() {
 
   # :command.required_args_filter
   if [[ -z ${args['name']+x} ]]; then
-    printf "missing required argument: NAME\nusage: lab start NAME\n" >&2
+    printf "missing required argument: NAME\nusage: openlab start NAME\n" >&2
 
     exit 1
   fi
@@ -782,14 +782,14 @@ lab_start_parse_requirements() {
 }
 
 # :command.parse_requirements
-lab_stop_parse_requirements() {
+openlab_stop_parse_requirements() {
   # :command.fixed_flags_filter
   while [[ $# -gt 0 ]]; do
     key="$1"
     case "$key" in
       --help | -h)
         long_usage=yes
-        lab_stop_usage
+        openlab_stop_usage
         exit
         ;;
 
@@ -832,7 +832,7 @@ lab_stop_parse_requirements() {
 
   # :command.required_args_filter
   if [[ -z ${args['name']+x} ]]; then
-    printf "missing required argument: NAME\nusage: lab stop NAME\n" >&2
+    printf "missing required argument: NAME\nusage: openlab stop NAME\n" >&2
 
     exit 1
   fi
@@ -861,12 +861,12 @@ run() {
   parse_requirements "${input[@]}"
 
   case "$action" in
-    "list") lab_list_command ;;
-    "get") lab_get_command ;;
-    "create") lab_create_command ;;
-    "delete") lab_delete_command ;;
-    "start") lab_start_command ;;
-    "stop") lab_stop_command ;;
+    "list") openlab_list_command ;;
+    "get") openlab_get_command ;;
+    "create") openlab_create_command ;;
+    "delete") openlab_delete_command ;;
+    "start") openlab_start_command ;;
+    "stop") openlab_stop_command ;;
   esac
 }
 
