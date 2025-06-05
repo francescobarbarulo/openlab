@@ -163,7 +163,7 @@ resource "aws_instance" "users_instances" {
   vpc_security_group_ids = [aws_security_group.backend_sg.id]
 
   tags = {
-    Name = format("ec2-%02.0f-${terraform.workspace}", count.index + 1)
+    Name = format("user-%02.0f-ec2-${terraform.workspace}", count.index + 1)
   }
 }
 
