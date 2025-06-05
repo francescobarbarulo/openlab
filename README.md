@@ -4,9 +4,9 @@ OpenLab is an automation platform designed to rapidly provision, manage, and tea
 
 The core integrates three well known technologies:
 
-- _Terraform_ for automated, reproducible AWS infrastructure lifecycle management;
-- _Ansible_ for seamless user and credential management within the Guacamole remote desktop gateway;
-- _Guacamole_ for browser-based desktop virtualization, providing students with secure, remote access to lab machines.
+- **Terraform** for automated, reproducible AWS infrastructure lifecycle management;
+- **Ansible** for seamless user and credential management within the Guacamole remote desktop gateway;
+- **Guacamole** for browser-based desktop virtualization, providing students with secure, remote access to lab machines.
 
 ## Lab infrastructure
 
@@ -23,22 +23,51 @@ The core integrates three well known technologies:
   aws_secret_access_key=<replace_with_your_secret_access_key>
   ```
 
-- Two pre-configured Amazon Machine Images (AMIs): one for Guacamole system with the associated key pair for SSH access used by Ansible and one for lab user instances.
+- Two pre-configured Amazon Machine Images (AMIs):
 
-- Install Terraform and Ansible CLIs locally
+  - one for Guacamole system with the associated key pair for SSH access used by Ansible;
+  - one for lab user instances.
+
+- Terraform and Ansible CLIs installed locally
 
 ## Use the CLI
 
-The orchestration between Terraform and Ansible is done by a CLI generated with [Bashly](https://bashly.dev/).
-
+The orchestration between Terraform and Ansible is done by the `openlab` CLI generated with [Bashly](https://bashly.dev/).
 The CLI provides simple commands to create, list, start, stop, and delete labs, abstracting away the complexity of the underlying tools.
 
-Once you install Bashly, run the following snippet (in this case bashly is executed in a Docker container).
+1. Create a link to `/usr/local/bin` in order to use it globally.
 
-```sh
-alias bashly='docker run --rm -it --user $(id -u):$(id -g) --volume "$PWD:/app" dannyben/bashly'
-# Generate the bash script
-cd bashly && bashly generate && cd ..
-# (Optional) Create a link to use it globally
-sudo ln bashly/lab /usr/local/bin/lab
-```
+   ```sh
+   sudo ln bashly/openlab /usr/local/bin/openlab
+   ```
+
+2. Create a terraform.tfvars.json file like the following in terraform folder.
+
+   ```json
+   {
+     "postgres_user": "<postgres_user>",
+     "postgres_password": "<postgres_password>",
+     "postgres_db": "<postgres_db>",
+     "connection_username": "<connection_username>",
+     "connection_password": "<connection_password>",
+     "acme_email": "<acme_email>",
+     "guacadmin_password": "<guacadmin_password>",
+     "lab_users": []
+   }
+   ```
+
+3. Use `openlab create <name>` to create a new lab environment.
+
+### Generate the openlab CLI
+
+1. Install Bashly
+
+2. Run the following commands to generate the `openlab` CLI (in this case bashly is executed in a Docker container) .
+
+   ```sh
+   alias bashly='docker run --rm -it --user $(id -u):$(id -g) --volume "$PWD:/app" dannyben/bashly'
+   # Generate the bash script
+   cd bashly && bashly generate && cd ..
+   # (Optional) Create a link to use it globally
+   sudo ln bashly/openlab /usr/local/bin/openlab
+   ```
