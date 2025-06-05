@@ -1,11 +1,12 @@
 # OpenLab
 
-The OpenLab project aims to automate the instantiation of labs for custom courses.
-The core leverages three well known products:
+OpenLab is an automation platform designed to rapidly provision, manage, and tear down isolated lab environments for custom courses and training sessions. It streamlines the deployment of virtualized desktops and user environments on AWS, making it easy for instructors and administrators to deliver hands-on experiences at scale.
 
-- _terraform_ for resource lifecycle management on AWS;
-- _ansible_ for users management on guacamole;
-- _guacamole_ for desktop virtualization.
+The core integrates three well known technologies:
+
+- _Terraform_ for automated, reproducible AWS infrastructure lifecycle management;
+- _Ansible_ for seamless user and credential management within the Guacamole remote desktop gateway;
+- _Guacamole_ for browser-based desktop virtualization, providing students with secure, remote access to lab machines.
 
 ## Lab infrastructure
 
@@ -22,10 +23,22 @@ The core leverages three well known products:
   aws_secret_access_key=<replace_with_your_secret_access_key>
   ```
 
-## Generate cli
+- Two pre-configured Amazon Machine Images (AMIs): one for Guacamole system with the associated key pair for SSH access used by Ansible and one for lab user instances.
+
+- Install Terraform and Ansible CLIs locally
+
+## Use the CLI
+
+The orchestration between Terraform and Ansible is done by a CLI generated with [Bashly](https://bashly.dev/).
+
+The CLI provides simple commands to create, list, start, stop, and delete labs, abstracting away the complexity of the underlying tools.
+
+Once you install Bashly, run the following snippet (in this case bashly is executed in a Docker container).
 
 ```sh
 alias bashly='docker run --rm -it --user $(id -u):$(id -g) --volume "$PWD:/app" dannyben/bashly'
+# Generate the bash script
 cd bashly && bashly generate && cd ..
-sudo ln lab /usr/local/bin/lab
+# (Optional) Create a link to use it globally
+sudo ln bashly/lab /usr/local/bin/lab
 ```
