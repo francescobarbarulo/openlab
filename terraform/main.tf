@@ -2,6 +2,10 @@ resource "aws_vpc" "ksp_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support   = true
+
+  tags = {
+    Name = format("vpc-${terraform.workspace}")
+  }
 }
 
 resource "aws_subnet" "frontend_subnet" {
@@ -86,30 +90,23 @@ resource "aws_instance" "guacamole_frontend" {
   key_name               = "aws-ksp_key"
   vpc_security_group_ids = [aws_security_group.frontend_sg.id]
   private_ip             = "10.0.0.10"
-  user_data_base64 = base64gzip(templatefile("${path.module}/templates/guacamole-init.tftpl", {
-    guacadmin_password        = var.guacadmin_password
+  user_data_base64 = base64encode(templatefile("${path.module}/templates/guacamole-init.tftpl", {
     postgres_user             = var.postgres_user
     postgres_password         = var.postgres_password
     postgres_db               = var.postgres_db
     public_ip                 = aws_eip.frontend_ip.public_ip
-    acme_letsencrypt_endpoint = var.acme_letsencrypt_endpoint[terraform.workspace]
+    acme_letsencrypt_endpoint = var.acme_letsencrypt_endpoint[var.env]
     acme_email                = var.acme_email
-    users = [
-      for i in range(var.lab_users_count) : {
-        "name" : format("user%02.0f", i + 1),
-        "password" : var.lab_user_password,
-        "connection_name" : format("user%02.0f-rdp", i + 1),
-        "connection_hostname" : format("10.0.1.%d", i + 1 + 10),
-        "connection_port" : "3389", # rdp
-        "connection_username" : var.connection_username,
-        "connection_password" : var.connection_password
-      }
-    ]
   }))
 
   tags = {
     Name = "guacamole-ec2-${terraform.workspace}"
   }
+}
+
+resource "aws_ec2_instance_state" "guacamole_frontend_instance_state" {
+  instance_id = aws_instance.guacamole_frontend.id
+  state       = var.instance_state
 }
 
 /* ============== */
@@ -157,7 +154,7 @@ resource "aws_vpc_security_group_egress_rule" "backend_sg_egress_rule" {
 }
 
 resource "aws_instance" "users_instances" {
-  count = var.lab_users_count
+  count = length(var.lab_users)
 
   ami                    = var.instance_ami
   instance_type          = var.instance_type
@@ -166,6 +163,13 @@ resource "aws_instance" "users_instances" {
   vpc_security_group_ids = [aws_security_group.backend_sg.id]
 
   tags = {
-    Name = format("user%02.0f-ec2-${terraform.workspace}", count.index + 1)
+    Name = format("ec2-%02.0f-${terraform.workspace}", count.index + 1)
   }
+}
+
+resource "aws_ec2_instance_state" "user_instances_states" {
+  count = length(var.lab_users)
+
+  instance_id = aws_instance.users_instances[count.index].id
+  state       = var.instance_state
 }

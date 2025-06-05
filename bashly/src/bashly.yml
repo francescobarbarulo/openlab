@@ -1,0 +1,50 @@
+name: lab
+help: cvnlabs LCM
+version: 0.1.0
+
+environment_variables:
+  - name: env
+    help: Deploy environment
+    allowed:
+      - dev
+      - prod
+    default: dev
+
+commands:
+- name: list
+  help: List existing lab infrastructures
+
+- name: get
+  help: Get lab hostname
+  args:
+    - name: name
+      help: Lab name
+      required: true
+
+- name: create
+  help: Bootstrap lab infrastructure
+  args:
+    - name: name
+      help: Lab name
+      required: true
+
+- name: delete
+  help: Delete lab infrastructure
+  args:
+    - name: name
+      help: Lab name
+      required: true
+
+- name: start
+  help: Start lab instances
+  args:
+    - name: name
+      help: Lab name
+      required: true
+
+- name: stop
+  help: Stop lab instances
+  args:
+    - name: name
+      help: Lab name
+      required: true
