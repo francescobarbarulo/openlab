@@ -84,10 +84,10 @@ resource "aws_eip_association" "eip_assoc" {
 }
 
 resource "aws_instance" "guacamole_frontend" {
-  ami                    = "ami-0802649dcda38fef0"
-  instance_type          = "t3.medium"
+  ami                    = var.guacamole_ami
+  instance_type          = var.guacamole_instance_type
   subnet_id              = aws_subnet.frontend_subnet.id
-  key_name               = "aws-ksp_key"
+  key_name               = var.guacamole_ssh_key
   vpc_security_group_ids = [aws_security_group.frontend_sg.id]
   private_ip             = "10.0.0.10"
   user_data_base64 = base64encode(templatefile("${path.module}/templates/guacamole-init.tftpl", {

@@ -1,4 +1,4 @@
 provider "aws" {
-  region                   = "eu-south-1"
+  region                   = var.region
   shared_credentials_files = [".aws/credentials"]
 }

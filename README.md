@@ -41,18 +41,23 @@ The CLI provides simple commands to create, list, start, stop, and delete labs, 
    sudo ln bashly/openlab /usr/local/bin/openlab
    ```
 
-2. Create a terraform.tfvars.json file like the following in terraform folder.
+2. Create a `terraform.tfvars.json` file similar to the following in terraform folder. Set variables properly for your use case.
 
    ```json
    {
-     "postgres_user": "<postgres_user>",
-     "postgres_password": "<postgres_password>",
-     "postgres_db": "<postgres_db>",
-     "connection_username": "<connection_username>",
-     "connection_password": "<connection_password>",
-     "acme_email": "<acme_email>",
-     "guacadmin_password": "<guacadmin_password>",
-     "lab_users": []
+     "region": "eu-south-1",
+     "postgres_user": "postgres",
+     "postgres_password": "changeme",
+     "postgres_db": "guacamole_db",
+     "connection_username": "student",
+     "connection_password": "student",
+     "acme_email": "acme@openlab.io",
+     "guacadmin_password": "changeme",
+     "guacamole_instance_type": "t3.medium",
+     "guacamole_ssh_key": "KeyPairMilan",
+     "instance_ami": "ami-00123456789abcdef",
+     "instance_type": "t3.medium",
+     "lab_users": ["user01", "user02"]
    }
    ```
 
