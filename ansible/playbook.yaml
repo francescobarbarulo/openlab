@@ -2,7 +2,7 @@
 - hosts: localhost
   vars_files:
     - ../terraform/terraform.tfvars.json
-    - ./vars.yaml
+    - ./vars.yaml # created on-the-fly by openlab CLI during lab creation (bashly/src/create_command.sh)
 
   tasks:
     - name: Check credentials file exists
