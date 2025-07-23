@@ -1,154 +1,33 @@
 ---
-- hosts: localhost
-  vars_files:
-    - ../terraform/terraform.tfvars.json
-    - ./vars.yaml # created on-the-fly by openlab CLI during lab creation (bashly/src/create_command.sh)
-
+- name: "Add users and connections to guacamole system"
+  hosts: localhost
   tasks:
-    - name: Check credentials file exists
-      ansible.builtin.stat:
-        path: "./{{lab_name}}/{{env}}/{{guacamole_fqdn}}_credentials.txt"
-      register: result
+    - name: "Waiting for Guacamole to become healthy"
+      ansible.builtin.wait_for:
+        timeout: 30
 
-    - name: Create token
-      ansible.builtin.uri:
-        url: https://{{guacamole_fqdn}}/guacamole/api/tokens
+    - name: "Add connections"
+      scicore.guacamole.guacamole_connection:
+        base_url: "{{ guacamole_url }}/guacamole"
         validate_certs: false
-        method: POST
-        body_format: form-urlencoded
-        body:
-          username: guacadmin
-          password: "{{guacadmin_password if result.stat.exists else 'guacadmin'}}"
-        status_code: 200
-      register: create_token_response
-      retries: 5
-      delay: 10
-      until: create_token_response is not failed
+        auth_username: "guacadmin"
+        auth_password: "guacadmin"
+        connection_name: "{{ item.owner }}-{{ item.private_ip | replace('.', '-') }}"
+        protocol: "rdp"
+        port: 3389
+        hostname: "{{ item.private_ip }}"
+        username: "{{ item.user }}"
+        password: "{{ item.password }}"
+      loop: "{{ instances }}"
+      register: connections
 
-    - name: Change guacadmin password
-      ansible.builtin.uri:
-        url: https://{{guacamole_fqdn}}/guacamole/api/session/data/postgresql/users/guacadmin/password?token={{create_token_response.json.authToken}}
+    - name: "Add users"
+      scicore.guacamole.guacamole_user:
+        base_url: "{{ guacamole_url }}/guacamole"
         validate_certs: false
-        method: PUT
-        body_format: json
-        body:
-          oldPassword: guacadmin
-          newPassword: "{{guacadmin_password}}"
-        status_code: 204
-      when: not result.stat.exists
-
-    - name: Check if user is present
-      ansible.builtin.uri:
-        url: https://{{guacamole_fqdn}}/guacamole/api/session/data/postgresql/users/{{item}}?token={{create_token_response.json.authToken}}
-        validate_certs: false
-        status_code:
-          - 200
-          - 404
-      loop: "{{lab_users}}"
-      register: check_user_response
-
-    # - name: Print check user response
-    #   ansible.builtin.debug:
-    #     msg: "{{item.status}}"
-    #   loop: "{{check_user_response.results}}"
-
-    # Facts are set only if the user has not been created yet
-    - name: Generating credentials
-      ansible.builtin.set_fact:
-        username: "{{item}}"
-        password: "{{lookup('community.general.random_string', length=12, special=false)}}"
-        host: "{{'10.0.1.%02d'|format(idx+11|int)}}"
-      loop: "{{lab_users}}"
-      loop_control:
-        index_var: idx
-      when: check_user_response.results[idx].status == 404
-      register: lab_credentials
-
-    # - name: Print facts
-    #   ansible.builtin.debug:
-    #     msg: "{{lab_credentials.results}}"
-
-    - name: Create lab users in guacamole
-      ansible.builtin.uri:
-        url: https://{{guacamole_fqdn}}/guacamole/api/session/data/postgresql/users?token={{create_token_response.json.authToken}}
-        validate_certs: false
-        method: POST
-        body_format: json
-        body:
-          username: "{{item.ansible_facts.username}}"
-          password: "{{item.ansible_facts.password}}"
-          attributes: {}
-        status_code: 200
-      loop: "{{lab_credentials.results}}"
-      when: "'ansible_facts' in item"
-      register: create_user_response
-      failed_when:
-        - create_user_response.status == 400
-        - "'already exists' not in create_user_response.json.message"
-
-    - name: Create a new connection
-      ansible.builtin.uri:
-        url: https://{{guacamole_fqdn}}/guacamole/api/session/data/postgresql/connections?token={{create_token_response.json.authToken}}
-        validate_certs: false
-        method: POST
-        body_format: json
-        body:
-          parentIdentifier: "ROOT"
-          name: "{{item.ansible_facts.username}}-rdp"
-          protocol: "rdp"
-          parameters:
-            hostname: "{{item.ansible_facts.host}}"
-            port: "3389"
-            username: "{{connection_username}}"
-            password: "{{connection_password}}"
-            server-layout: "it-it-qwerty"
-          attributes: {}
-        status_code: 200
-      loop: "{{lab_credentials.results}}"
-      when: "'ansible_facts' in item"
-      register: create_connection_response
-      failed_when:
-        - create_connection_response.status == 400
-        - "'already exists' not in create_connection_response.json.message"
-
-    # - name: Print create connection response
-    #   ansible.builtin.debug:
-    #     msg: "{{create_connection_response.results}}"
-
-    - name: Assign connection to user
-      ansible.builtin.uri:
-        url: https://{{guacamole_fqdn}}/guacamole/api/session/data/postgresql/users/{{item.ansible_facts.username}}/permissions?token={{create_token_response.json.authToken}}
-        validate_certs: false
-        method: PATCH
-        body_format: json
-        body:
-          - op: "add"
-            path: "/connectionPermissions/{{create_connection_response.results[idx].json.identifier}}"
-            value: "READ"
-        status_code: 204
-      loop: "{{lab_credentials.results}}"
-      loop_control:
-        index_var: idx
-      when:
-        - "'ansible_facts' in item"
-        - create_connection_response.results[idx].status == 200
-
-    - name: Delete token
-      ansible.builtin.uri:
-        url: https://{{guacamole_fqdn}}/guacamole/api/tokens/{{create_token_response.json.authToken}}
-        validate_certs: false
-        method: DELETE
-        status_code: 204
-
-    - name: Create credentials file
-      ansible.builtin.file:
-        path: "./{{lab_name}}/{{env}}/{{guacamole_fqdn}}_credentials.txt"
-        state: touch
-
-    - name: Write to credentials file
-      ansible.builtin.lineinfile:
-        path: "./{{lab_name}}/{{env}}/{{guacamole_fqdn}}_credentials.txt"
-        line: "{{item.ansible_facts.username}}::{{item.ansible_facts.password}}"
-        create: yes
-      loop: "{{lab_credentials.results}}"
-      when: "'ansible_facts' in item"
+        auth_username: "guacadmin"
+        auth_password: "guacadmin"
+        username: "{{ item }}"
+        password: "changeme"
+        allowed_connections: "{{ connections.results | map(attribute='connection_info.name') | select('match', item) | list }}"
+      loop: "{{ users }}"
