@@ -173,6 +173,9 @@ locals {
       instance_type = pair[1].instance_type
       subnet_id     = pair[0].id
       private_ip    = cidrhost(pair[0].cidr_block, key % length(var.instances) + 11)
+      user          = pair[1].user
+      password      = pair[1].password
+      owner         = var.lab_users[floor(key / length(var.instances))]
     }
   ]
 }

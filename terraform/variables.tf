@@ -54,43 +54,25 @@ variable "instance_state" {
   }
 }
 
-# variable "instance_ami" {
-#   description = "AMI to be used for user instances. It must exist before provisioning."
-#   type        = string
-# }
-
-# variable "instance_type" {
-#   type    = string
-#   default = "t3.medium"
-# }
-
-# variable "connection_username" {
-#   description = "Username for the guacamole RDP connection. Depends on pre-configured lab user instance."
-#   type        = string
-# }
-
-# variable "connection_password" {
-#   description = "Password for the guacamole RDP connection. Depends on pre-configured lab user instance."
-#   type        = string
-#   sensitive   = true
-# }
-
 variable "postgres_user" {
   description = "Postgres administrator username"
   type        = string
   sensitive   = true
+  default     = "postgres"
 }
 
 variable "postgres_password" {
   description = "Postgres administrator password"
   type        = string
   sensitive   = true
+  default     = "secret"
 }
 
 variable "postgres_db" {
   description = "Postgres database"
   type        = string
   sensitive   = true
+  default     = "guacamole"
 }
 
 variable "acme_letsencrypt_endpoint" {
