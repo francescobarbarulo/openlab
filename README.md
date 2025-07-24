@@ -30,6 +30,12 @@ The core integrates three well known technologies:
 
 - Terraform and Ansible CLIs installed locally
 
+- `scicore.guacamole` Ansible module installed:
+
+  ```sh
+  ansible-galaxy collection install scicore.guacamole
+  ```
+
 ## Use the CLI
 
 The orchestration between Terraform and Ansible is done by the `openlab` CLI generated with [Bashly](https://bashly.dev/).
@@ -46,17 +52,23 @@ The CLI provides simple commands to create, list, start, stop, and delete labs, 
    ```json
    {
      "region": "eu-south-1",
-     "postgres_user": "postgres",
-     "postgres_password": "changeme",
-     "postgres_db": "guacamole_db",
-     "connection_username": "student",
-     "connection_password": "student",
      "acme_email": "acme@openlab.io",
      "guacadmin_password": "changeme",
-     "guacamole_instance_type": "t3.medium",
      "guacamole_ssh_key": "KeyPairMilan",
-     "instance_ami": "ami-00123456789abcdef",
-     "instance_type": "t3.medium",
+     "instances": [
+       {
+         "ami": "ami-06f70f6789ba21dc7",
+         "instance_type": "t3.medium",
+         "user": "student",
+         "password": "student"
+       },
+       {
+         "ami": "ami-06f70f6789ba21dc7",
+         "instance_type": "t3.medium",
+         "user": "student",
+         "password": "student"
+       }
+     ],
      "lab_users": ["user01", "user02"]
    }
    ```

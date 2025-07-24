@@ -10,13 +10,13 @@ variable "env" {
 
 variable "region" {
   description = "AWS region where the lab environment will be instantiated"
-  type = string
+  type        = string
 }
 
 variable "guacamole_ami" {
   description = "AMI to be used for guacamole instance. It must exist before provisioning."
-  type = string
-  default = "ami-040f47e4ddbe2ee13" # pointing to ubuntu 24.04 AMI
+  type        = string
+  default     = "ami-040f47e4ddbe2ee13" # pointing to ubuntu 24.04 AMI
 }
 
 variable "guacamole_instance_type" {
@@ -26,7 +26,16 @@ variable "guacamole_instance_type" {
 
 variable "guacamole_ssh_key" {
   description = "Name of SSH key pair stored in AWS. Use it only for debugging operations. The username depends on the AMI used."
-  type = string
+  type        = string
+}
+
+variable "instances" {
+  type = list(object({
+    ami           = string
+    instance_type = string
+    user          = string
+    password      = string
+  }))
 }
 
 variable "lab_users" {
@@ -45,43 +54,25 @@ variable "instance_state" {
   }
 }
 
-variable "instance_ami" {
-  description = "AMI to be used for user instances. It must exist before provisioning."
-  type        = string
-}
-
-variable "instance_type" {
-  type    = string
-  default = "t3.medium"
-}
-
-variable "connection_username" {
-  description = "Username for the guacamole RDP connection. Depends on pre-configured lab user instance."
-  type        = string
-}
-
-variable "connection_password" {
-  description = "Password for the guacamole RDP connection. Depends on pre-configured lab user instance."
-  type        = string
-  sensitive   = true
-}
-
 variable "postgres_user" {
   description = "Postgres administrator username"
   type        = string
   sensitive   = true
+  default     = "postgres"
 }
 
 variable "postgres_password" {
   description = "Postgres administrator password"
   type        = string
   sensitive   = true
+  default     = "secret"
 }
 
 variable "postgres_db" {
   description = "Postgres database"
   type        = string
   sensitive   = true
+  default     = "guacamole"
 }
 
 variable "acme_letsencrypt_endpoint" {

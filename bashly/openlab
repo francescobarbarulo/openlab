@@ -17,7 +17,7 @@ version_command() {
 
 # :command.usage
 openlab_usage() {
-  printf "openlab - openlab CLI\n\n"
+  printf "openlab - A CLI for managing lab environments\n\n"
 
   printf "%s\n" "Usage:"
   printf "  openlab COMMAND\n"
@@ -302,13 +302,15 @@ inspect_args() {
 openlab_list_command() {
 
   # src/list_command.sh
+  TABLE="ENV,NAME"
   for i in $(ls $PWD/terraform/terraform.tfstate.d)
   do
-
-    LAB_NAME=$(echo ${i} | cut -d "-" -f 1)
-    ENV=$(echo ${i} | cut -d "-" -f 2)
-    echo "${LAB_NAME} (${ENV})"
+    TMP=$(echo ${i} | rev | awk '{sub(/-/,":")}1' | rev)
+    LAB_NAME=$(echo ${TMP} | cut -d ":" -f 1)
+    ENV=$(echo ${TMP} | cut -d ":" -f 2)
+    TABLE="${TABLE}\n${ENV},${LAB_NAME}"
   done
+  (printf $TABLE | head -n 1 && printf $TABLE | tail -n +2 | sort) | column -t -s ','
 
 }
 
@@ -316,13 +318,17 @@ openlab_list_command() {
 openlab_get_command() {
 
   # src/get_command.sh
-  lab_name=${args[name]}
-  WORKSPACE="${lab_name}-${ENV}"
+  LAB_NAME=${args[name]}
+  WORKSPACE="${LAB_NAME}-${ENV}"
+  TABLE="ENV,NAME,URL,STATUS"
 
   cd $PWD/terraform
-  terraform workspace select ${WORKSPACE} &> /dev/null || (echo "Lab \"${lab_name}\" does not exist" && exit 1)
-  echo "$(terraform output -raw hostname) ($(terraform output -raw state))"
+  terraform workspace select ${WORKSPACE} &> /dev/null || (echo "Lab \"${LAB_NAME}\" does not exist in ${ENV} environment" && exit 1)
+  URL=$(terraform output -raw lab_url)
+  STATUS=$(terraform output -raw state)
   cd $PWD/..
+  TABLE="${TABLE}\n${ENV},${LAB_NAME},${URL},${STATUS}"
+  printf $TABLE | column -t -s ','
 
 }
 
@@ -333,13 +339,22 @@ openlab_create_command() {
   lab_name=${args[name]}
   WORKSPACE="${lab_name}-${ENV}"
 
+  echo "Creating lab ${lab_name} in ${ENV} environment..."
+
   cd $PWD/terraform
   terraform workspace select ${WORKSPACE} &> /dev/null || terraform workspace new ${WORKSPACE} &> /dev/null
   terraform apply -auto-approve -var="env=${ENV}"
-  echo "guacamole_fqdn: $(terraform output hostname)" > $PWD/../ansible/vars.yaml
+  LAB_URL=$(terraform output -json lab_url)
+  USERS=$(terraform output -json users)
+  INSTANCES=$(terraform output -json instances)
   cd $PWD/..
-  mkdir -p $PWD/ansible/${lab_name}/${ENV}
-  ansible-playbook $PWD/ansible/playbook.yaml --extra-vars "lab_name=${lab_name} env=${ENV}"
+  ansible-playbook $PWD/ansible/playbook.yaml \
+    --extra-vars "lab_name=${lab_name}" \
+    --extra-vars "env=${ENV}" \
+    --extra-vars "guacamole_url=${LAB_URL}" \
+    --extra-vars "users=${USERS}" \
+    --extra-vars "instances=${INSTANCES}"
+
 }
 
 # :command.function
@@ -349,13 +364,13 @@ openlab_delete_command() {
   lab_name=${args[name]}
   WORKSPACE="${lab_name}-${ENV}"
 
+  echo "Deleting lab ${lab_name} in ${ENV} environment..."
+
   cd $PWD/terraform
-  terraform workspace select ${WORKSPACE} &> /dev/null || (echo "Lab \"${lab_name}\" does not exist" && exit 1)
+  terraform workspace select ${WORKSPACE} &> /dev/null || (echo "Lab \"${lab_name}\" does not exist ${ENV} environment" && exit 1)
   terraform destroy -auto-approve -var="env=${ENV}"
   terraform workspace select default &> /dev/null && terraform workspace delete ${WORKSPACE} &> /dev/null
   cd $PWD/..
-  rm -rf $PWD/ansible/${lab_name}/${ENV}
-  if [ -z "$(ls -A $PWD/ansible/${lab_name})" ]; then rmdir $PWD/ansible/${lab_name}; fi
 }
 
 # :command.function
@@ -365,8 +380,10 @@ openlab_start_command() {
   lab_name=${args[name]}
   WORKSPACE="${lab_name}-${ENV}"
 
+  echo "Starting lab ${lab_name} in ${ENV} environment..."
+
   cd $PWD/terraform
-  terraform workspace select ${WORKSPACE} &> /dev/null || (echo "Lab \"${lab_name}\" does not exist" && exit 1)
+  terraform workspace select ${WORKSPACE} &> /dev/null || (echo "Lab \"${lab_name}\" does not exist in ${ENV} environment" && exit 1)
   terraform apply -auto-approve -var="env=${ENV}"
   cd $PWD/..
 
@@ -379,8 +396,10 @@ openlab_stop_command() {
   lab_name=${args[name]}
   WORKSPACE="${lab_name}-${ENV}"
 
+  echo "Stopping lab ${lab_name} in ${ENV} environment..."
+
   cd $PWD/terraform
-  terraform workspace select ${WORKSPACE} &> /dev/null || (echo "Lab \"${lab_name}\" does not exist" && exit 1)
+  terraform workspace select ${WORKSPACE} &> /dev/null || (echo "Lab \"${lab_name}\" does not exist ${ENV} environment" && exit 1)
   terraform apply -auto-approve -var="instance_state=stopped" -var="env=${ENV}"
   cd $PWD/..
 
