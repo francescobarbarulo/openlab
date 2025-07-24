@@ -1,8 +1,9 @@
 lab_name=${args[name]}
 WORKSPACE="${lab_name}-${ENV}"
 
-cd $PWD/terraform
 echo "Creating lab ${lab_name} in ${ENV} environment..."
+
+cd $PWD/terraform
 terraform workspace select ${WORKSPACE} &> /dev/null || terraform workspace new ${WORKSPACE} &> /dev/null
 terraform apply -auto-approve -var="env=${ENV}"
 LAB_URL=$(terraform output -json lab_url)
