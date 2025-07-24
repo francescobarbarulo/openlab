@@ -18,6 +18,7 @@
         hostname: "{{ item.private_ip }}"
         username: "{{ item.user }}"
         password: "{{ item.password }}"
+        rdp_ignore_server_certs: true
       loop: "{{ instances }}"
       register: connections
 
@@ -30,4 +31,5 @@
         username: "{{ item }}"
         password: "changeme"
         allowed_connections: "{{ connections.results | map(attribute='connection_info.name') | select('match', item) | list }}"
+        expired: "true"
       loop: "{{ users }}"
