@@ -24,7 +24,6 @@ The core integrates three well known technologies:
   ```
 
 - Two pre-configured Amazon Machine Images (AMIs):
-
   - one for Guacamole system with the associated key pair for SSH access used by Ansible;
   - one for lab user instances.
 
@@ -36,55 +35,38 @@ The core integrates three well known technologies:
   ansible-galaxy collection install scicore.guacamole
   ```
 
-## Use the CLI
+- A valid email to use for letsencrypt and get a valid certificate for the lab hostname.
 
-The orchestration between Terraform and Ansible is done by the `openlab` CLI generated with [Bashly](https://bashly.dev/).
-The CLI provides simple commands to create, list, start, stop, and delete labs, abstracting away the complexity of the underlying tools.
+## Provision your first lab
 
-1. Create a link to `/usr/local/bin` in order to use it globally.
+1. Create a lab configuration file like the one shown as example:
+
+   ```yaml
+   lab:
+     name: mylab
+     region: eu-south-1
+     guacadmin_password: changeme
+     letsencrypt:
+       email: jsmith@acme.com
+     users:
+       - alice
+       - bob
+     instances:
+       - name: vm01
+         ami: ami-0123456789cafebabe # should be a valid AMI
+         instance_type: t3.medium
+         user: student # should be the already configured user in the AMI
+         password: student # should be the already configured user in the AMI
+   ```
+
+2. Use `ansible-playbook` to create the environment.
 
    ```sh
-   sudo ln bashly/openlab /usr/local/bin/openlab
+   ansible-playbook playbook.yaml -e @lab.yaml -e action=create`
    ```
 
-2. Create a `terraform.tfvars.json` file similar to the following in terraform folder. Set variables properly for your use case.
+## Destroy the lab
 
-   ```json
-   {
-     "region": "eu-south-1",
-     "acme_email": "acme@openlab.io",
-     "guacadmin_password": "changeme",
-     "guacamole_ssh_key": "KeyPairMilan",
-     "instances": [
-       {
-         "ami": "ami-06f70f6789ba21dc7",
-         "instance_type": "t3.medium",
-         "user": "student",
-         "password": "student"
-       },
-       {
-         "ami": "ami-06f70f6789ba21dc7",
-         "instance_type": "t3.medium",
-         "user": "student",
-         "password": "student"
-       }
-     ],
-     "lab_users": ["user01", "user02"]
-   }
-   ```
-
-3. Use `openlab create <name>` to create a new lab environment.
-
-### Generate the openlab CLI
-
-1. Install Bashly
-
-2. Run the following commands to generate the `openlab` CLI (in this case bashly is executed in a Docker container) .
-
-   ```sh
-   alias bashly='docker run --rm -it --user $(id -u):$(id -g) --volume "$PWD:/app" dannyben/bashly'
-   # Generate the bash script
-   cd bashly && bashly generate && cd ..
-   # (Optional) Create a link to use it globally
-   sudo ln bashly/openlab /usr/local/bin/openlab
-   ```
+```sh
+ansible-playbook playbook.yaml -e @lab.yaml -e action=destroy`
+```

@@ -1,0 +1,78 @@
+- name: Deploy lab
+  hosts: localhost
+  gather_facts: false
+  vars:
+    workdir: "./.openlab"
+
+  tasks:
+    - name: Show lab configuration
+      ansible.builtin.debug:
+        var: lab
+
+    - name: Create workspace working directory
+      ansible.builtin.file:
+        path: "{{ workdir }}/{{ lab.name }}"
+        state: directory
+        mode: "0775"
+
+    - name: Generate private key
+      community.crypto.openssl_privatekey:
+        path: "{{ workdir }}/{{ lab.name }}/ansible.key"
+
+    - name: Generate public key from private key
+      community.crypto.openssl_publickey:
+        path: "{{ workdir }}/{{ lab.name }}/ansible.pub"
+        privatekey_path: "{{ workdir }}/{{ lab.name }}/ansible.key"
+        return_content: true
+        format: OpenSSH
+      register: openssl
+
+    - name: Manage lab infrastructure using terraform ({{ action }})
+      community.general.terraform:
+        project_path: "terraform/"
+        state: "{{ 'present' if action in ['create', 'start', 'stop'] else 'absent' }}"
+        workspace: "{{ lab.name }}"
+        variables:
+          lab_name: "{{ lab.name }}"
+          region: "{{ lab.region }}"
+          guacamole_ssh_key: "{{ openssl.publickey }}"
+          lab_users: "{{ lab.users | to_json }}"
+          instances: "{{ lab.instances | to_json }}"
+          instance_state: "{{ 'running' if action in ['create', 'start'] else 'stopped' }}"
+      register: terraform
+
+    - name: Debug terraform output
+      ansible.builtin.debug:
+        msg: "{{ terraform }}"
+
+    - name: Set lab hostname
+      ansible.builtin.set_fact:
+        lab_hostname: "{{ lab.name }}.{{ terraform.outputs.guacamole_public_ip.value | replace('.', '-') }}.sslip.io"
+      when: action in ['create', 'start']
+
+    - name: Deploy Guacamole
+      become: true
+      delegate_to: "{{ terraform.outputs.guacamole_public_ip.value }}"
+      vars:
+        ansible_ssh_private_key_file: "{{ workdir }}/{{ lab.name }}/ansible.key"
+        hostname: "{{ lab_hostname }}"
+        letsencrypt: "{{ lab.letsencrypt }}"
+      ansible.builtin.import_tasks:
+        file: guacamole-deploy.yaml
+      when: action == "create"
+
+    - name: Setup guacamole
+      ansible.builtin.import_tasks:
+        file: guacamole-setup.yaml
+      when: action == "create"
+
+    - name: Delete key material
+      ansible.builtin.file:
+        path: "{{ workdir }}/{{ lab.name }}"
+        state: absent
+      when: action == "destroy"
+
+    - name: Output the lab url
+      ansible.builtin.debug:
+        msg: "{{ lab_hostname }}"
+      when: action in ['create', 'start']

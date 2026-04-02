@@ -40,3 +40,8 @@ terraform.rc
 
 # Ignore aws credenitals
 .aws
+
+.vscode
+.ansible
+.openlab
+lab.yaml

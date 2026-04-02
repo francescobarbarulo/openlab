@@ -4,7 +4,7 @@ resource "aws_vpc" "openlab_vpc" {
   enable_dns_support   = true
 
   tags = {
-    Name = format("openlab-vpc-${terraform.workspace}")
+    Name = terraform.workspace
   }
 }
 
@@ -83,24 +83,21 @@ resource "aws_eip_association" "eip_assoc" {
   allocation_id = aws_eip.frontend_ip.id
 }
 
+resource "aws_key_pair" "guacamole_ssh_key" {
+  key_name = terraform.workspace
+  public_key = var.guacamole_ssh_key
+}
+
 resource "aws_instance" "guacamole_frontend" {
   ami                    = var.guacamole_ami
   instance_type          = var.guacamole_instance_type
   subnet_id              = aws_subnet.frontend_subnet.id
-  key_name               = var.guacamole_ssh_key
+  key_name               = aws_key_pair.guacamole_ssh_key.key_name
   vpc_security_group_ids = [aws_security_group.frontend_sg.id]
   private_ip             = "10.0.0.10"
-  user_data_base64 = base64encode(templatefile("${path.module}/templates/guacamole-init.tftpl", {
-    postgres_user             = var.postgres_user
-    postgres_password         = var.postgres_password
-    postgres_db               = var.postgres_db
-    public_ip                 = aws_eip.frontend_ip.public_ip
-    acme_letsencrypt_endpoint = var.acme_letsencrypt_endpoint[var.env]
-    acme_email                = var.acme_email
-  }))
 
   tags = {
-    Name = "guacamole-ec2-${terraform.workspace}"
+    Name = "${terraform.workspace}-guacamole"
   }
 }
 
@@ -169,6 +166,7 @@ resource "aws_vpc_security_group_ingress_rule" "allow_from_subnet" {
 locals {
   instances = [
     for key, pair in setproduct(aws_subnet.backend_subnets, var.instances) : {
+      name          = pair[1].name
       ami           = pair[1].ami
       instance_type = pair[1].instance_type
       subnet_id     = pair[0].id
@@ -192,7 +190,7 @@ resource "aws_instance" "users_instances" {
   vpc_security_group_ids = [aws_security_group.backend_security_groups[floor(each.key / length(var.instances))].id]
 
   tags = {
-    Name = format("user-%02.0f-ec2-${terraform.workspace}", floor(each.key / length(var.instances)) + 1)
+    Name = "${terraform.workspace}-${each.value.name}-${each.value.owner}"
   }
 }
 

@@ -1,0 +1,78 @@
+services:
+  traefik:
+    container_name: traefik
+    image: traefik:3.6.9
+    command:
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entryPoints.websecure.address=:443"
+      - "--entryPoints.websecure.http.tls=true"
+      - "--entryPoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+      - "--log.level=DEBUG"
+      {% if letsencrypt is defined -%}
+      - "--certificatesresolvers.myresolver.acme.email={{ letsencrypt.email }}"
+      - "--certificatesresolvers.myresolver.acme.storage=acme.json"
+      # used during the challenge
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      {% endif %}
+
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - guacamole
+
+  postgres:
+    container_name: postgres
+    image: postgres:17
+    environment:
+      POSTGRES_DB: "guacamole"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    volumes:
+      - ~/.openlab/initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - guacamole
+
+  guacd:
+    container_name: guacd
+    image: guacamole/guacd:1.6.0
+    networks:
+      - guacamole
+
+  guacamole:
+    container_name: guacamole
+    image: guacamole/guacamole:1.6.0
+    environment:
+      POSTGRESQL_HOSTNAME: "postgres"
+      POSTGRESQL_DATABASE: "guacamole"
+      POSTGRESQL_USER: "postgres"
+      POSTGRESQL_PASSWORD: "postgres"
+      GUACD_HOSTNAME: "guacd"
+      GUACD_PORT: "4822"
+      LOG_LEVEL: "debug"
+    networks:
+      - guacamole
+    depends_on:
+      - postgres
+    labels:
+      - "traefik.http.routers.guacamole-root.rule=Host(`{{ hostname }}`) && Path(`/`)"
+      - "traefik.http.routers.guacamole-root.middlewares=guacamole-redirect"
+      - "traefik.http.middlewares.guacamole-redirect.redirectregex.regex=^https?://(.*?)/?$$"
+      - "traefik.http.middlewares.guacamole-redirect.redirectregex.replacement=https://$${1}/guacamole"
+      - "traefik.http.routers.guacamole.rule=Host(`{{ hostname }}`) && PathPrefix(`/guacamole`)"
+      {% if letsencrypt is defined -%}
+      - "traefik.http.routers.guacamole.tls.certresolver=myresolver"
+      {% endif %}
+
+networks:
+  guacamole:
+    name: guacamole
+
+volumes:
+  postgres-data:
+    name: postgres-data
