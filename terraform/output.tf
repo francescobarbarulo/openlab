@@ -1,6 +1,5 @@
-output "lab_url" {
-  description = "Guacamole URL"
-  value       = format("https://guacamole.%s.sslip.io", aws_eip.frontend_ip.public_ip)
+output "guacamole_public_ip" {
+  value = aws_eip.frontend_ip.public_ip
 }
 
 output "state" {
@@ -11,9 +10,4 @@ output "state" {
 output "instances" {
   description = "Lab VMs"
   value       = local.instances
-}
-
-
-output "users" {
-  value = [for user in var.lab_users : user]
 }

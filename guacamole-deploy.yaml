@@ -1,0 +1,54 @@
+---
+# tasks file for guacamole
+- name: Gather facts
+  ansible.builtin.setup:
+
+- name: Ensure dependencies are installed
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+    state: present
+
+- name: Add Docker's official GPG key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Add Docker repository to Apt sources
+  ansible.builtin.apt_repository:
+    repo: >
+      deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }} signed-by=/etc/apt/keyrings/docker.asc]
+      https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+    filename: docker
+    update_cache: true
+
+- name: Install Docker
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+
+- name: Create workdir
+  ansible.builtin.file:
+    name: ~/.openlab
+    state: directory
+    mode: "0775"
+
+- name: Generate PostgreSQL initialization script
+  ansible.builtin.shell:
+    cmd: docker run --rm guacamole/guacamole /opt/guacamole/bin/initdb.sh --postgresql > ~/.openlab/initdb.sql
+    creates: ~/.openlab/initdb.sql
+
+- name: Template compose file
+  ansible.builtin.template:
+    src: templates/compose.j2
+    dest: ~/.openlab/compose.yaml
+    mode: "0644"
+
+- name: Start docker compose services
+  community.docker.docker_compose_v2:
+    project_src: ~/.openlab

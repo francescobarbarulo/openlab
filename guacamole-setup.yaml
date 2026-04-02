@@ -1,0 +1,39 @@
+---
+- name: Healthcheck guacamole by trying listing users
+  scicore.guacamole.list_users:
+    base_url: "https://{{ lab_hostname }}/guacamole"
+    validate_certs: false
+    auth_username: "guacadmin"
+    auth_password: "guacadmin"
+  register: this
+  until: this is not failed
+  retries: 5
+  delay: 10
+
+- name: Add connections
+  scicore.guacamole.guacamole_connection:
+    base_url: "https://{{ lab_hostname }}/guacamole"
+    validate_certs: false
+    auth_username: "guacadmin"
+    auth_password: "guacadmin"
+    connection_name: "{{ item.name }}-{{ item.private_ip | replace('.', '-') }}"
+    protocol: "rdp"
+    port: 3389
+    hostname: "{{ item.private_ip }}"
+    username: "{{ item.user }}"
+    password: "{{ item.password }}"
+    rdp_ignore_server_certs: true
+  loop: "{{ terraform.outputs.instances.value }}"
+  register: connections
+
+- name: Add users
+  scicore.guacamole.guacamole_user:
+    base_url: "https://{{ lab_hostname }}/guacamole"
+    validate_certs: false
+    auth_username: "guacadmin"
+    auth_password: "guacadmin"
+    username: "{{ item }}"
+    password: "changeme"
+    allowed_connections: "{{ connections.results | selectattr('item.owner', 'equalto', item) | map(attribute='connection_info.name') | list }}"
+    expired: "true"
+  loop: "{{ lab.users }}"

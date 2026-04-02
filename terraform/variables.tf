@@ -1,11 +1,6 @@
-variable "env" {
-  description = "Environment"
+variable "lab_name" {
+  description = "Lab name"
   type        = string
-
-  validation {
-    condition     = contains(["dev", "prod"], var.env)
-    error_message = "Allowed values: dev, prod"
-  }
 }
 
 variable "region" {
@@ -31,6 +26,7 @@ variable "guacamole_ssh_key" {
 
 variable "instances" {
   type = list(object({
+    name          = string
     ami           = string
     instance_type = string
     user          = string
@@ -52,43 +48,4 @@ variable "instance_state" {
     condition     = contains(["running", "stopped"], var.instance_state)
     error_message = "Allowed values: running, stopped"
   }
-}
-
-variable "postgres_user" {
-  description = "Postgres administrator username"
-  type        = string
-  sensitive   = true
-  default     = "postgres"
-}
-
-variable "postgres_password" {
-  description = "Postgres administrator password"
-  type        = string
-  sensitive   = true
-  default     = "secret"
-}
-
-variable "postgres_db" {
-  description = "Postgres database"
-  type        = string
-  sensitive   = true
-  default     = "guacamole"
-}
-
-variable "acme_letsencrypt_endpoint" {
-  description = "ACME v2 Let's Encrypt endpoint for frontend certificate"
-  type        = map(string)
-  default = {
-    dev  = "https://acme-staging-v02.api.letsencrypt.org/directory"
-    prod = "https://acme-v02.api.letsencrypt.org/directory"
-  }
-}
-
-variable "acme_email" {
-  type = string
-}
-
-variable "guacadmin_password" {
-  type      = string
-  sensitive = true
 }
