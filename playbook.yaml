@@ -54,6 +54,7 @@
       become: true
       delegate_to: "{{ terraform.outputs.guacamole_public_ip.value }}"
       vars:
+        ansible_ssh_user: "ubuntu" # must match the user in the AMI OS used for guacamole
         ansible_ssh_private_key_file: "{{ workdir }}/{{ lab.name }}/ansible.key"
         hostname: "{{ lab_hostname }}"
         letsencrypt: "{{ lab.letsencrypt }}"
@@ -61,7 +62,7 @@
         file: guacamole-deploy.yaml
       when: action == "create"
 
-    - name: Setup guacamole
+    - name: Setup guacamole using APIs
       ansible.builtin.import_tasks:
         file: guacamole-setup.yaml
       when: action == "create"
