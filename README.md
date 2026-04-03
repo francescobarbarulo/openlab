@@ -29,7 +29,7 @@ The core integrates three well known technologies:
 
 - Terraform and Ansible CLIs installed locally
 
-- `scicore.guacamole` Ansible module installed:
+- [`scicore.guacamole`](https://galaxy.ansible.com/ui/repo/published/scicore/guacamole/) Ansible module installed:
 
   ```sh
   ansible-galaxy collection install scicore.guacamole
@@ -62,11 +62,13 @@ The core integrates three well known technologies:
 2. Use `ansible-playbook` to create the environment.
 
    ```sh
-   ansible-playbook playbook.yaml -e @lab.yaml -e action=create`
+   ansible-playbook playbook.yaml -e @lab.yaml -e action=create
    ```
 
-## Destroy the lab
+## Manage lab
 
-```sh
-ansible-playbook playbook.yaml -e @lab.yaml -e action=destroy`
-```
+| Description | Action    |
+| ----------- | --------- |
+| Start lab   | `start`   |
+| Stop lab    | `stop`    |
+| Destroy lab | `destroy` |
