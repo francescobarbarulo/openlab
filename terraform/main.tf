@@ -84,7 +84,7 @@ resource "aws_eip_association" "eip_assoc" {
 }
 
 resource "aws_key_pair" "guacamole_ssh_key" {
-  key_name = terraform.workspace
+  key_name   = terraform.workspace
   public_key = var.guacamole_ssh_key
 }
 
@@ -111,9 +111,9 @@ resource "aws_ec2_instance_state" "guacamole_frontend_instance_state" {
 /* ============== */
 
 resource "aws_subnet" "backend_subnets" {
-  count      = length(var.lab_users)
+  for_each   = toset(var.lab_users)
   vpc_id     = aws_vpc.openlab_vpc.id
-  cidr_block = format("10.0.%d.0/24", count.index + 1)
+  cidr_block = "10.0.${index(var.lab_users, each.key) + 1}.0/24"
 }
 
 resource "aws_route_table" "backend_rtb" {
@@ -126,77 +126,80 @@ resource "aws_route_table" "backend_rtb" {
 }
 
 resource "aws_route_table_association" "backend_rtb_assoc" {
-  count          = length(var.lab_users)
+  for_each       = toset(var.lab_users)
   route_table_id = aws_route_table.backend_rtb.id
-  subnet_id      = aws_subnet.backend_subnets[count.index].id
+  subnet_id      = aws_subnet.backend_subnets[each.key].id
 }
 
 resource "aws_security_group" "backend_security_groups" {
-  count  = length(var.lab_users)
-  name   = format("backend-security-group-%d", count.index + 1)
-  vpc_id = aws_vpc.openlab_vpc.id
+  for_each = toset(var.lab_users)
+  name     = "backend-security-group-${each.key}"
+  vpc_id   = aws_vpc.openlab_vpc.id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "allow_rdp" {
-  count             = length(var.lab_users)
-  security_group_id = aws_security_group.backend_security_groups[count.index].id
-
-  cidr_ipv4   = "10.0.0.10/32"
-  from_port   = 3389
-  ip_protocol = "tcp"
-  to_port     = 3389
+  for_each          = toset(var.lab_users)
+  security_group_id = aws_security_group.backend_security_groups[each.key].id
+  cidr_ipv4         = "10.0.0.10/32"
+  from_port         = 3389
+  ip_protocol       = "tcp"
+  to_port           = 3389
 }
 
 resource "aws_vpc_security_group_egress_rule" "allow_to_any" {
-  count             = length(var.lab_users)
-  security_group_id = aws_security_group.backend_security_groups[count.index].id
-
-  cidr_ipv4   = "0.0.0.0/0"
-  ip_protocol = -1
+  for_each          = toset(var.lab_users)
+  security_group_id = aws_security_group.backend_security_groups[each.key].id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = -1
 }
 
 resource "aws_vpc_security_group_ingress_rule" "allow_from_subnet" {
-  count             = length(var.lab_users)
-  security_group_id = aws_security_group.backend_security_groups[count.index].id
-
-  cidr_ipv4   = aws_subnet.backend_subnets[count.index].cidr_block
-  ip_protocol = -1
+  for_each          = toset(var.lab_users)
+  security_group_id = aws_security_group.backend_security_groups[each.key].id
+  cidr_ipv4         = aws_subnet.backend_subnets[each.key].cidr_block
+  ip_protocol       = -1
 }
 
 locals {
-  instances = [
-    for key, pair in setproduct(aws_subnet.backend_subnets, var.instances) : {
-      name          = pair[1].name
-      ami           = pair[1].ami
-      instance_type = pair[1].instance_type
-      subnet_id     = pair[0].id
-      private_ip    = cidrhost(pair[0].cidr_block, key % length(var.instances) + 11)
-      user          = pair[1].user
-      password      = pair[1].password
-      owner         = var.lab_users[floor(key / length(var.instances))]
-    }
-  ]
+  user_instances = {
+    for pair in flatten([
+      for i, user in var.lab_users : [
+        for j, instance in var.instances : {
+          key           = "${user}-${instance.name}"
+          user          = user
+          user_index    = i
+          name          = instance.name
+          ami           = instance.ami
+          instance_type = instance.instance_type
+          subnet_id     = aws_subnet.backend_subnets[user].id
+          private_ip    = cidrhost(aws_subnet.backend_subnets[user].cidr_block, j + 11)
+          password      = instance.password
+          vm_user       = instance.user
+        }
+      ]
+    ]) : pair.key => pair
+  }
 }
 
 resource "aws_instance" "users_instances" {
-  for_each = tomap({
-    for key, instance in local.instances : key => instance
-  })
+  for_each = local.user_instances
 
-  ami                    = each.value.ami
-  instance_type          = each.value.instance_type
-  subnet_id              = each.value.subnet_id
-  private_ip             = each.value.private_ip
-  vpc_security_group_ids = [aws_security_group.backend_security_groups[floor(each.key / length(var.instances))].id]
+  ami           = each.value.ami
+  instance_type = each.value.instance_type
+  subnet_id     = each.value.subnet_id
+  private_ip    = each.value.private_ip
+  vpc_security_group_ids = [
+    aws_security_group.backend_security_groups[each.value.user].id
+  ]
 
   tags = {
-    Name = "${terraform.workspace}-${each.value.name}-${each.value.owner}"
+    Name = "${terraform.workspace}-${each.value.name}-${each.value.user}"
   }
 }
 
 resource "aws_ec2_instance_state" "user_instances_states" {
-  count = length(var.lab_users)
+  for_each = local.user_instances
 
-  instance_id = aws_instance.users_instances[count.index].id
+  instance_id = aws_instance.users_instances[each.key].id
   state       = var.instance_state
 }

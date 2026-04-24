@@ -5,8 +5,8 @@
     validate_certs: false
     auth_username: "guacadmin"
     auth_password: "guacadmin"
-  register: this
-  until: this is not failed
+  register: existing_users
+  until: existing_users is not failed
   retries: 5
   delay: 10
 
@@ -16,17 +16,19 @@
     validate_certs: false
     auth_username: "guacadmin"
     auth_password: "guacadmin"
-    connection_name: "{{ item.name }}-{{ item.private_ip | replace('.', '-') }}"
+    connection_name: "{{ item.value.name }}-{{ item.value.private_ip | replace('.', '-') }}"
     protocol: "rdp"
     port: 3389
-    hostname: "{{ item.private_ip }}"
-    username: "{{ item.user }}"
-    password: "{{ item.password }}"
+    hostname: "{{ item.value.private_ip }}"
+    username: "{{ item.value.vm_user }}"
+    password: "{{ item.value.password }}"
     rdp_ignore_server_certs: true
-  loop: "{{ terraform.outputs.instances.value }}"
+  loop: "{{ terraform.outputs.instances.value | dict2items }}"
+  loop_control:
+    pause: 1
   register: connections
 
-- name: Add users
+- name: Add new users
   scicore.guacamole.guacamole_user:
     base_url: "https://{{ lab_hostname }}/guacamole"
     validate_certs: false
@@ -34,6 +36,20 @@
     auth_password: "guacadmin"
     username: "{{ item }}"
     password: "changeme"
-    allowed_connections: "{{ connections.results | selectattr('item.owner', 'equalto', item) | map(attribute='connection_info.name') | list }}"
     expired: "true"
   loop: "{{ lab.users }}"
+  loop_control:
+    pause: 1
+  when: item not in existing_users.users_list | map(attribute='username') | list
+
+- name: Update connections for all users
+  scicore.guacamole.guacamole_user:
+    base_url: "https://{{ lab_hostname }}/guacamole"
+    validate_certs: false
+    auth_username: "guacadmin"
+    auth_password: "guacadmin"
+    username: "{{ item }}"
+    allowed_connections: "{{ connections.results | selectattr('item.value.user', 'equalto', item) | map(attribute='connection_info.name') | list }}"
+  loop: "{{ lab.users }}"
+  loop_control:
+    pause: 1

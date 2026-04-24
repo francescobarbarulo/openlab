@@ -9,5 +9,5 @@ output "state" {
 
 output "instances" {
   description = "Lab VMs"
-  value       = local.instances
+  value       = local.user_instances
 }
