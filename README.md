@@ -23,9 +23,7 @@ The core integrates three well known technologies:
   aws_secret_access_key=<replace_with_your_secret_access_key>
   ```
 
-- Two pre-configured Amazon Machine Images (AMIs):
-  - one for Guacamole system with the associated key pair for SSH access used by Ansible;
-  - one for lab user instances.
+- Pre-configured Amazon Machine Images (AMIs) for lab user instances.
 
 - Terraform and Ansible CLIs installed locally
 
