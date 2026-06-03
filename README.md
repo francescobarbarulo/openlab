@@ -15,6 +15,7 @@ The core integrates three well known technologies:
 ## Prerequisites
 
 - An AWS account with administration privileges
+
 - An access key id and a secret access key. Create the file `terraform/.aws/credentials` like the following:
 
   ```plaintext
@@ -25,12 +26,12 @@ The core integrates three well known technologies:
 
 - Pre-configured Amazon Machine Images (AMIs) for lab user instances.
 
-- Terraform and Ansible CLIs installed locally
+- [Terraform](https://developer.hashicorp.com/terraform/install#linux) and [Ansible](https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html) CLIs installed locally
 
-- [`scicore.guacamole`](https://galaxy.ansible.com/ui/repo/published/scicore/guacamole/) Ansible module installed:
+- Required Ansible modules installed:
 
   ```sh
-  ansible-galaxy collection install scicore.guacamole
+  ansible-galaxy install -r requirements.yaml
   ```
 
 - A valid email to use for letsencrypt and get a valid certificate for the lab hostname.
